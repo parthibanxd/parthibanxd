@@ -1,0 +1,125 @@
+10(a) Python Program using OpenCV to Apply Random Rotations to an Image Dataset
+Algorithm
+Import required libraries: OpenCV, NumPy, os, random.
+Load all images from the input dataset folder.
+For each image:
+Read the image.
+Generate a random rotation angle between 0° and 360°.
+Find image center.
+Create rotation matrix using OpenCV.
+Apply affine transformation.
+Save rotated image into output folder.
+Repeat for all dataset images.
+Python Program
+import cv2
+import os
+import random
+
+# Input and output folders
+input_folder = "dataset_images"
+output_folder = "rotated_images"
+
+os.makedirs(output_folder, exist_ok=True)
+
+# Process each image
+for filename in os.listdir(input_folder):
+    image_path = os.path.join(input_folder, filename)
+    
+    image = cv2.imread(image_path)
+    
+    if image is not None:
+        h, w = image.shape[:2]
+        center = (w // 2, h // 2)
+
+        # Random angle
+        angle = random.randint(0, 360)
+
+        # Rotation matrix
+        rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+        # Rotate image
+        rotated_image = cv2.warpAffine(image, rotation_matrix, (w, h))
+
+        # Save output
+        output_path = os.path.join(output_folder, filename)
+        cv2.imwrite(output_path, rotated_image)
+
+        print(f"{filename} rotated by {angle} degrees")
+
+print("All images rotated successfully.")
+Output
+image1.jpg rotated by 125 degrees
+image2.jpg rotated by 290 degrees
+image3.jpg rotated by 45 degrees
+All images rotated successfully.
+10(b) Python Program to Generate Image Captions using LSTM and VGG16
+Algorithm
+Import required libraries.
+Load pre-trained VGG16 model without classification layer.
+Extract image features from input image.
+Load tokenizer and vocabulary.
+Build LSTM caption generation model.
+Feed extracted image features into LSTM.
+Predict next word repeatedly until end token.
+Combine predicted words into final caption.
+Display generated caption.
+Python Program
+from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import numpy as np
+import pickle
+
+# Load VGG16 model
+base_model = VGG16(weights='imagenet')
+model_vgg = Model(inputs=base_model.inputs, outputs=base_model.layers[-2].output)
+
+# Load trained caption model
+caption_model = load_model("caption_model.h5")
+
+# Load tokenizer
+with open("tokenizer.pkl", "rb") as f:
+    tokenizer = pickle.load(f)
+
+max_length = 34
+
+# Extract features from image
+def extract_features(filename):
+    image = load_img(filename, target_size=(224, 224))
+    image = img_to_array(image)
+    image = np.expand_dims(image, axis=0)
+    image = preprocess_input(image)
+    feature = model_vgg.predict(image, verbose=0)
+    return feature
+
+# Generate caption
+def generate_caption(model, tokenizer, photo, max_length):
+    in_text = "startseq"
+    
+    for i in range(max_length):
+        sequence = tokenizer.texts_to_sequences([in_text])[0]
+        sequence = pad_sequences([sequence], maxlen=max_length)
+
+        yhat = model.predict([photo, sequence], verbose=0)
+        yhat = np.argmax(yhat)
+
+        word = tokenizer.index_word.get(yhat)
+
+        if word is None:
+            break
+
+        in_text += " " + word
+
+        if word == "endseq":
+            break
+
+    return in_text
+
+# Test image
+photo = extract_features("test.jpg")
+caption = generate_caption(caption_model, tokenizer, photo, max_length)
+
+print("Generated Caption:", caption)
+Output
+Generated Caption: startseq a dog is running in the grass endseq
